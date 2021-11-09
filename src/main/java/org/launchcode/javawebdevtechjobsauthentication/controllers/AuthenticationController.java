@@ -2,6 +2,7 @@ package org.launchcode.javawebdevtechjobsauthentication.controllers;
 
 import org.launchcode.javawebdevtechjobsauthentication.models.User;
 import org.launchcode.javawebdevtechjobsauthentication.models.data.UserRepository;
+import org.launchcode.javawebdevtechjobsauthentication.models.dto.LoginFormDTO;
 import org.launchcode.javawebdevtechjobsauthentication.models.dto.RegisterFormDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -43,6 +44,13 @@ public class AuthenticationController {
         session.setAttribute(userSessionKey, user.getId());
     }
 
+    @GetMapping("/login")
+    public String displayLoginForm(Model model) {
+        model.addAttribute(new LoginFormDTO());
+        model.addAttribute("title", "Log In");
+        return "login";
+    }
+
     @GetMapping("register")
     public String displayRegistrationForm( Model model) {
         model.addAttribute(new RegisterFormDTO());
@@ -81,6 +89,37 @@ public class AuthenticationController {
         setUserInSession(request.getSession(), newUser);
 
         return "redirect:/";
+    }
+
+    @PostMapping("/login")
+    public String processLoginForm(@ModelAttribute @Valid LoginFormDTO loginFormDTO,
+                                   Errors errors, HttpServletRequest request,
+                                   Model model) {
+
+        if (errors.hasErrors()) {
+            model.addAttribute("title", "Log In");
+            return "login";
+        }
+
+        User theUser = userRepository.findByUsername(loginFormDTO.getUsername());
+
+        if (theUser == null) {
+            errors.rejectValue("username", "user.invalid", "The given username does not exist");
+            model.addAttribute("title", "Log In");
+            return "login";
+        }
+
+        String password = loginFormDTO.getPassword();
+
+        if (!theUser.isMatchingPassword(password)) {
+            errors.rejectValue("password", "password.invalid", "Invalid password");
+            model.addAttribute("title", "Log In");
+            return "login";
+        }
+
+        setUserInSession(request.getSession(), theUser);
+
+        return "redirect:";
     }
 
     @GetMapping("/logout")
